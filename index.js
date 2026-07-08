@@ -144,19 +144,27 @@ console.log(chalk.hex("#2E8B57")(logo));
 
 
 
-  sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
+ sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
+    console.log("Estado:", connection);
+
     if (connection === "close") {
-      const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-      if (reason !== DisconnectReason.loggedOut) startBot();
-      else process.exit(0);
+        const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
+        console.log("Razón:", reason, lastDisconnect?.error);
+
+        if (reason !== DisconnectReason.loggedOut) {
+            console.log("Reconectando...");
+            startBot();
+        } else {
+            process.exit(0);
+        }
     }
 
     if (connection === "open") {
-      console.log(ok("Bot conectado correctamente"));
-      exec("rm -rf tmp && mkdir tmp");
-      resumeSubBots(sock); //
+        console.log(ok("Bot conectado correctamente"));
+        exec("rm -rf tmp && mkdir tmp");
+        resumeSubBots(sock);
     }
-  });
+});
 
   sock.ev.on("creds.update", saveCreds);
 }
