@@ -127,10 +127,12 @@ console.log(chalk.hex("#2E8B57")(logo));
     console.log(chalk.green("└──────────────────────────────┘\n"));
   }
 
-    sock.ev.on("messages.upsert", async (chatUpdate) => {
-    const m = chatUpdate.messages[0];
-    if (!m.message) return;
+    sock.ev.on("messages.upsert", ({ messages }) => {
+  const m = messages[0];
+  if (!m?.key?.remoteJid) return;
 
+  console.log("Chat ID:", m.key.remoteJid);
+});
    
     try {
         const { handler } = await import(`./handler.js?update=${Date.now()}`);
