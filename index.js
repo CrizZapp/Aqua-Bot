@@ -8,7 +8,6 @@ import readline from "readline";
 import fs from "fs";
 import path from "path";
 import { pathToFileURL } from "url";
-import { resumeSubBots } from "./subbot.js"; //nada
 
 const {
   useMultiFileAuthState,
@@ -33,8 +32,6 @@ const question = (text) => {
     resolve(ans);
   }));
 };
-
-
 
 async function loadPlugin(file) {
     try {
@@ -72,29 +69,17 @@ function watchPlugins() {
     });
 }
 
-
-
 async function startBot() {
   console.clear();
 
-  // 1. 
-  // 2. 
-const logo = figlet.textSync("Eclipsa\nBot", {
-  font: "ANSI Shadow"
-});
+  const logo = figlet.textSync("DoxBot", { font: "ANSI Shadow" });
+  console.log(chalk.hex("#2E8B57")(logo));
 
-console.log(chalk.hex("#2E8B57")(logo));
-
-
-  // 3. 
   await loadPlugins();
   watchPlugins();
 
   const { state, saveCreds } = await useMultiFileAuthState("./session");
   const { version } = await fetchLatestBaileysVersion();
-
- 
-
 
   const sock = makeWASocket({
     version,
@@ -127,11 +112,9 @@ console.log(chalk.hex("#2E8B57")(logo));
     console.log(chalk.green("└──────────────────────────────┘\n"));
   }
 
-    sock.ev.on("messages.upsert", async (chatUpdate) => {
+  sock.ev.on("messages.upsert", async (chatUpdate) => {
     const m = chatUpdate.messages[0];
     if (!m.message) return;
-
-    console.log("Chat ID:", m.key.remoteJid);
 
     try {
         const { handler } = await import(`./handler.js?update=${Date.now()}`);
@@ -139,18 +122,11 @@ console.log(chalk.hex("#2E8B57")(logo));
     } catch (error) {
         console.error(chalk.red("[ERROR EN HANDLER]"), error);
     }
-});
+  });
 
-
-
-
- sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
-    console.log("Estado:", connection);
-
+  sock.ev.on("connection.update", ({ connection, lastDisconnect }) => {
     if (connection === "close") {
         const reason = new Boom(lastDisconnect?.error)?.output?.statusCode;
-        console.log("Razón:", reason, lastDisconnect?.error);
-
         if (reason !== DisconnectReason.loggedOut) {
             console.log("Reconectando...");
             startBot();
@@ -158,13 +134,11 @@ console.log(chalk.hex("#2E8B57")(logo));
             process.exit(0);
         }
     }
-
     if (connection === "open") {
         console.log(ok("Bot conectado correctamente"));
         exec("rm -rf tmp && mkdir tmp");
-        resumeSubBots(sock);
     }
-});
+  });
 
   sock.ev.on("creds.update", saveCreds);
 }
