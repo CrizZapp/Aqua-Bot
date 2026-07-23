@@ -1,65 +1,32 @@
-import chalk from "chalk";
-import { serialize } from "./lib/Bmod.js";
+global.doxWait = global.doxWait || {};
 
-export const handler = async (sock, rawM) => {
-    if (!rawM || !rawM.message) return;
+export async function handler(sock, m, chatUpdate) {
+    const body = m.message.conversation || m.message.extendedTextMessage?.text || "";
+    const sender = m.key.remoteJid;
+    const participant = m.key.participant || sender; 
 
-    const m = serialize(sock, rawM);
+    if (!body) return;
 
-    const conn = sock;
-    const from = m.chat;
-    const sender = m.sender;
+    // Si el usuario ya había escrito "dox", este mensaje se toma como el número
+    if (global.doxWait[participant]) {
+        const numeroIngresado = body.trim();
 
-    const usedPrefix = "`";
-
-    // Texto normal
-    let body = m.text || "";
-
-    // Si vino de un botón
-    if (!body) {
-        const params = rawM.message?.interactiveResponseMessage
-            ?.nativeFlowResponseMessage?.paramsJson;
-
-        if (params) {
-            try {
-                body = JSON.parse(params).id || "";
-            } catch (e) {}
+        if (global.plugins["dox.js"]) {
+            await global.plugins["dox.js"].execute(sock, m, numeroIngresado);
+        } else {
+            await sock.sendMessage(sender, { text: "❌ Error: Plugin dox.js no cargado." }, { quoted: m });
         }
+
+        delete global.doxWait[participant];
+        return;
     }
 
-    if (!body.startsWith(usedPrefix)) return;
-
-    const [cmdName, ...args] = body
-        .slice(usedPrefix.length)
-        .trim()
-        .split(/\s+/);
-
-    const command = cmdName.toLowerCase();
-
-    if (!global.plugins || typeof global.plugins !== "object") return;
-
-    const plugin = Object.values(global.plugins).find(p =>
-        p.command &&
-        (Array.isArray(p.command)
-            ? p.command.includes(command)
-            : p.command === command)
-    );
-
-    if (!plugin) return;
-
-    try {
-        await plugin(m, {
-    conn,
-    from,
-    sender,
-    usedPrefix,
-    args,
-    command,
-    rawM
-});
-    } catch (e) {
-        console.error(chalk.red(`[ERROR ${command}]`));
-        console.error(e);
-        await m.reply("Error ejecutando comando");
+    // Comando principal para iniciar
+    if (body.toLowerCase() === "dox") {
+        global.doxWait[participant] = true;
+        await sock.sendMessage(sender, { 
+            text: "Ingresa el número:\nEjemplo: +523313002435 o 523313002435" 
+        }, { quoted: m });
+        return;
     }
-};
+}
